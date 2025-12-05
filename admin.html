@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎮 پنل کنترل دوربین</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: #0d1117;
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+            text-align: center;
+            border: 1px solid #30363d;
+        }
+        
+        h1 {
+            color: #58a6ff;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        
+        .header-info {
+            color: #8b949e;
+            font-size: 14px;
+        }
+        
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 25px;
+            margin-bottom: 25px;
+        }
+        
+        @media (max-width: 1024px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .main-panel {
+            background: #161b22;
+            border-radius: 15px;
+            padding: 25px;
+            border: 1px solid #30363d;
+        }
+        
+        .side-panel {
+            background: #161b22;
+            border-radius: 15px;
+            padding: 25px;
+            border: 1px solid #30363d;
+        }
+        
+        .video-container {
+            background: #000;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 25px;
+            height: 400px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        
+        #streamVideo {
+            max-width: 100%;
+            max-height: 100%;
+            display: none;
+        }
+        
+        .video-placeholder {
+            text-align: center;
+            color: #8b949e;
+        }
+        
+        .video-placeholder i {
+            font-size: 60px;
+            margin-bottom: 15px;
+            display: block;
+        }
+        
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        
+        .control-btn {
+            padding: 18px 15px;
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            background: #21262d;
+            border: 1px solid #30363d;
+        }
+        
+        .control-btn:hover {
+            transform: translateY(-2px);
+            border-color: #58a6ff;
+        }
+        
+        .control-btn:active {
+            transform: translateY(0);
+        }
+        
+        .control-btn.green {
+            background: linear-gradient(135deg, #238636 0%, #2ea043 100%);
+        }
+        
+        .control-btn.red {
+            background: linear-gradient(135deg, #da3633 0%, #f85149 100%);
+        }
+        
+        .control-btn.blue {
+            background: linear-gradient(135deg, #1f6feb 0%, #388bfd 100%);
+        }
+        
+        .control-btn.yellow {
+            background: linear-gradient(135deg, #9e6a03 0%, #d29922 100%);
+        }
+        
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        
+        .status-card {
+            background: #0d1117;
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid #30363d;
+        }
+        
+        .status-label {
+            color: #8b949e;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+        
+        .status-value {
+            font-size: 22px;
+            font-weight: bold;
+        }
+        
+        .connected {
+            color: #3fb950;
+        }
+        
+        .disconnected {
+            color: #f85149;
+        }
+        
+        .recording {
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .captures-container {
+            background: #0d1117;
+            border-radius: 10px;
+            padding: 20px;
+            border: 1px solid #30363d;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .captures-title {
+            color: #58a6ff;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #30363d;
+        }
+        
+        .capture-item {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            background: #161b22;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #30363d;
+        }
+        
+        .capture-preview {
+            width: 60px;
+            height: 60px;
+            border-radius: 6px;
+            overflow: hidden;
+            margin-left: 15px;
+            flex-shrink: 0;
+        }
+        
+        .capture-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .capture-info {
+            flex: 1;
+        }
+        
+        .capture-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .capture-time {
+            color: #8b949e;
+            font-size: 12px;
+        }
+        
+        .capture-download {
+            background: #21262d;
+            border: 1px solid #30363d;
+            color: #58a6ff;
+            padding: 8px 15px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        
+        .capture-download:hover {
+            background: #30363d;
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #238636;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 8px;
+            z-index: 1000;
+            animation: slideDown 0.3s ease;
+            display: none;
+        }
+        
+        @keyframes slideDown {
+            from {
+                top: -100px;
+                opacity: 0;
+            }
+            to {
+                top: 20px;
+                opacity: 1;
+            }
+        }
+        
+        .live-badge {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: #f85149;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+            display: none;
+        }
+        
+        .stream-stats {
+            position: absolute;
+            bottom: 15px;
+            left: 15px;
+            background: rgba(0,0,0,0.7);
+            padding: 8px 15px;
+            border-radius: 8px;
+            font-size: 12px;
+            color: #8b949e;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="notification" id="notification"></div>
+    
+    <div class="container">
+        <header>
+            <h1>🎮 پنل کنترل دوربین سلفی</h1>
+            <div class="header-info">
+                <div>📡 وضعیت سرور: <span id="serverStatus">در حال اتصال...</span></div>
+                <div>🆔 آدرس این صفحه: <span id="pageUrl">محاسبه...</span></div>
+            </div>
+        </header>
+        
+        <div class="dashboard">
+            <div class="main-panel">
+                <div class="video-container">
+                    <div class="live-badge" id="liveBadge">● LIVE</div>
+                    <div class="video-placeholder" id="videoPlaceholder">
+                        <div>📹</div>
+                        <div>تصویر دوربین اینجا نمایش داده می‌شود</div>
+                        <div style="font-size: 14px; margin-top: 10px;">روی "شروع استریم" کلیک کنید</div>
+                    </div>
+                    <img id="streamVideo">
+                    <div class="stream-stats" id="streamStats">
+                        فریم‌ها: <span id="frameCount">0</span> |
+                        آخرین به‌روزرسانی: <span id="lastUpdate">--</span>
+                    </div>
+                </div>
+                
+                <h3 style="margin-bottom: 15px; color: #58a6ff;">🎛️ کنترل‌ها</h3>
+                <div class="controls">
+                    <button class="control-btn green" onclick="sendCommand('start-stream')" id="startBtn">
+                        <span>▶️</span>
+                        شروع استریم
+                    </button>
+                    <button class="control-btn red" onclick="sendCommand('stop-stream')" id="stopBtn" disabled>
+                        <span>⏸️</span>
+                        توقف استریم
+                    </button>
+                    <button class="control-btn blue" onclick="sendCommand('capture-image')" id="captureBtn">
+                        <span>📸</span>
+                        ثبت تصویر
+                    </button>
+                    <button class="control-btn yellow" onclick="showQrCode()">
+                        <span>📱</span>
+                        لینک گوشی
+                    </button>
+                </div>
+                
+                <div class="status-grid">
+                    <div class="status-card">
+                        <div class="status-label">وضعیت اتصال سرور</div>
+                        <div class="status-value" id="connectionStatus">🔗 در حال اتصال...</div>
+                    </div>
+                    <div class="status-card">
+                        <div class="status-label">وضعیت دوربین</div>
+                        <div class="status-value" id="cameraStatus">📴 قطع</div>
+                    </div>
+                    <div class="status-card">
+                        <div class="status-label">تصاویر ثبت شده</div>
+                        <div class="status-value" id="captureCount">0</div>
+                    </div>
+                    <div class="status-card">
+                        <div class="status-label">زمان استریم</div>
+                        <div class="status-value" id="streamTime">00:00</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="side-panel">
+                <h3 style="margin-bottom: 15px; color: #58a6ff;">📱 راهنمای اتصال</h3>
+                <div style="background: #0d1117; padding: 20px; border-radius: 10px; margin-bottom: 25px; border: 1px solid #30363d;">
+                    <p style="margin-bottom: 15px; color: #8b949e;">برای اتصال گوشی:</p>
+                    <div style="background: #000; padding: 15px; border-radius: 8px; font-family: monospace; margin-bottom: 15px;">
+                        <div id="clientUrl">در حال بارگذاری...</div>
+                    </div>
+                    <button class="control-btn blue" onclick="copyClientUrl()" style="width: 100%;">
+                        <span>📋</span>
+                        کپی لینک
+                    </button>
+                </div>
+                
+                <h3 style="margin-bottom: 15px; color: #58a6ff;">📸 تصاویر اخیر</h3>
+                <div class="captures-container" id="capturesContainer">
+                    <div style="text-align: center; padding: 30px; color: #8b949e;" id="noCaptures">
+                        هنوز تصویری ثبت نشده است
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- QR Code Modal -->
+    <div id="qrModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; align-items: center; justify-content: center;">
+        <div style="background: #161b22; padding: 30px; border-radius: 15px; text-align: center; max-width: 400px; border: 1px solid #30363d;">
+            <h3 style="color: #58a6ff; margin-bottom: 20px;">📱 اسکن برای اتصال گوشی</h3>
+            <div id="qrcode" style="margin: 20px auto;"></div>
+            <div style="margin-top: 20px; font-size: 14px; color: #8b949e;">
+                این کد را با دوربین گوشی اسکن کنید
+            </div>
+            <button onclick="closeQrCode()" style="margin-top: 20px; padding: 10px 20px; background: #f85149; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                بستن
+            </button>
+        </div>
+    </div>
+    
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+    <script>
+        // متغیرهای اصلی
+        const socket = io();
+        let streamStartTime = null;
+        let streamTimer = null;
+        let frameCounter = 0;
+        let lastUpdateTime = null;
+        let totalCaptures = 0;
+        
+        // عناصر DOM
+        const connectionStatus = document.getElementById('connectionStatus');
+        const cameraStatus = document.getElementById('cameraStatus');
+        const captureCount = document.getElementById('captureCount');
+        const streamTime = document.getElementById('streamTime');
+        const streamVideo = document.getElementById('streamVideo');
+        const videoPlaceholder = document.getElementById('videoPlaceholder');
+        const liveBadge = document.getElementById('liveBadge');
+        const streamStats = document.getElementById('streamStats');
+        const frameCount = document.getElementById('frameCount');
+        const lastUpdate = document.getElementById('lastUpdate');
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const captureBtn = document.getElementById('captureBtn');
+        const capturesContainer = document.getElementById('capturesContainer');
+        const noCaptures = document.getElementById('noCaptures');
+        const clientUrl = document.getElementById('clientUrl');
+        const notification = document.getElementById('notification');
+        const serverStatus = document.getElementById('serverStatus');
+        const pageUrl = document.getElementById('pageUrl');
+        
+        // شناسایی به عنوان ادمین
+        socket.emit('identify', 'admin');
+        
+        // تنظیم آدرس صفحه
+        pageUrl.textContent = window.location.href;
+        const baseUrl = window.location.origin;
+        const clientPageUrl = `${baseUrl}/client`;
+        clientUrl.textContent = clientPageUrl;
+        
+        // رویدادهای Socket
+        socket.on('connect', () => {
+            connectionStatus.textContent = '✅ متصل';
+            connectionStatus.className = 'status-value connected';
+            serverStatus.textContent = '🟢 آنلاین';
+            serverStatus.style.color = '#3fb950';
+            showNotification('اتصال به سرور برقرار شد');
+        });
+        
+        socket.on('disconnect', () => {
+            connectionStatus.textContent = '❌ قطع';
+            connectionStatus.className = 'status-value disconnected';
+            serverStatus.textContent = '🔴 آفلاین';
+            serverStatus.style.color = '#f85149';
+            cameraStatus.textContent = '📴 قطع';
+            stopStream();
+        });
+        
+        // دریافت استریم
+        socket.on('stream', (data) => {
+            if (data.image) {
+                streamVideo.src = data.image;
+                streamVideo.style.display = 'block';
+                videoPlaceholder.style.display = 'none';
+                liveBadge.style.display = 'block';
+                streamStats.style.display = 'block';
+                
+                frameCounter++;
+                frameCount.textContent = frameCounter;
+                lastUpdateTime = new Date().toLocaleTimeString('fa-IR');
+                lastUpdate.textContent = lastUpdateTime;
+                
+                cameraStatus.textContent = '📹 در حال پخش';
+                cameraStatus.style.color = '#3fb950';
+                
+                if (!streamStartTime) {
+                    startStreamTimer();
+                }
+            }
+        });
+        
+        // دریافت اطلاع ثبت تصویر
+        socket.on('image-captured', (data) => {
+            totalCaptures++;
+            captureCount.textContent = totalCaptures;
+            
+            addCaptureToList(data);
+            showNotification(`تصویر جدید ثبت شد: ${data.filename}`);
+        });
+        
+        // ارسال دستور
+        function sendCommand(action) {
+            socket.emit('command', { action: action });
+            
+            switch(action) {
+                case 'start-stream':
+                    startBtn.disabled = true;
+                    stopBtn.disabled = false;
+                    captureBtn.disabled = false;
+                    showNotification('دستور شروع استریم ارسال شد');
+                    break;
+                    
+                case 'stop-stream':
+                    startBtn.disabled = false;
+                    stopBtn.disabled = true;
+                    captureBtn.disabled = true;
+                    showNotification('دستور توقف استریم ارسال شد');
+                    stopStream();
+                    break;
+                    
+                case 'capture-image':
+                    showNotification('دستور ثبت تصویر ارسال شد');
+                    break;
+            }
+        }
+        
+        // توقف استریم
+        function stopStream() {
+            streamVideo.style.display = 'none';
+            videoPlaceholder.style.display = 'block';
+            liveBadge.style.display = 'none';
+            streamStats.style.display = 'none';
+            cameraStatus.textContent = '📴 قطع';
+            cameraStatus.style.color = '#8b949e';
+            
+            if (streamTimer) {
+                clearInterval(streamTimer);
+                streamTimer = null;
+            }
+            streamStartTime = null;
+            streamTime.textContent = '00:00';
+        }
+        
+        // شروع تایمر
+        function startStreamTimer() {
+            streamStartTime = Date.now();
+            streamTimer = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - streamStartTime) / 1000);
+                const minutes = Math.floor(elapsed / 60).toString().padStart(2, '0');
+                const seconds = (elapsed % 60).toString().padStart(2, '0');
+                streamTime.textContent = `${minutes}:${seconds}`;
+            }, 1000);
+        }
+        
+        // افزودن تصویر به لیست
+        function addCaptureToList(data) {
+            if (noCaptures.style.display !== 'none') {
+                noCaptures.style.display = 'none';
+            }
+            
+            const captureItem = document.createElement('div');
+            captureItem.className = 'capture-item';
+            captureItem.innerHTML = `
+                <div class="capture-preview">
+                    <img src="/captures/${data.filename}" alt="تصویر">
+                </div>
+                <div class="capture-info">
+                    <div class="capture-name">${data.filename}</div>
+                    <div class="capture-time">${data.timestamp}</div>
+                </div>
+                <a href="/captures/${data.filename}" download class="capture-download">
+                    دانلود
+                </a>
+            `;
+            
+            capturesContainer.prepend(captureItem);
+        }
+        
+        // نمایش QR Code
+        function showQrCode() {
+            QRCode.toCanvas(document.getElementById('qrcode'), clientPageUrl, {
+                width: 200,
+                margin: 2,
+                color: {
+                    dark: '#58a6ff',
+                    light: '#0d1117'
+                }
+            }, function(error) {
+                if (error) console.error(error);
+            });
+            
+            document.getElementById('qrModal').style.display = 'flex';
+        }
+        
+        function closeQrCode() {
+            document.getElementById('qrModal').style.display = 'none';
+            document.getElementById('qrcode').innerHTML = '';
+        }
+        
+        // کپی لینک
+        function copyClientUrl() {
+            navigator.clipboard.writeText(clientPageUrl)
+                .then(() => showNotification('لینک کپی شد!'))
+                .catch(err => showNotification('خطا در کپی لینک'));
+        }
+        
+        // نمایش نوتیفیکیشن
+        function showNotification(message) {
+            notification.textContent = message;
+            notification.style.display = 'block';
+            notification.style.background = '#238636';
+            
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, 3000);
+        }
+        
+        // خطا
+        function showError(message) {
+            notification.textContent = message;
+            notification.style.display = 'block';
+            notification.style.background = '#da3633';
+            
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, 3000);
+        }
+        
+        // راه‌اندازی اولیه
+        window.onload = () => {
+            console.log('پنل کنترل بارگذاری شد');
+        };
+    </script>
+</body>
+</html>

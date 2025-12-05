@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>پنل کنترل دوربین</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+        }
+        
+        body {
+            background: #0f172a;
+            color: #f1f5f9;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            background: #1e293b;
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+            border: 1px solid #334155;
+            text-align: center;
+        }
+        
+        h1 {
+            color: #60a5fa;
+            margin-bottom: 10px;
+        }
+        
+        .connection-info {
+            background: #1e293b;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+            border: 1px solid #334155;
+        }
+        
+        .qr-box {
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        #qrcode {
+            display: inline-block;
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+        }
+        
+        .link-box {
+            background: #0f172a;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            margin: 15px 0;
+            word-break: break-all;
+            border: 1px solid #334155;
+        }
+        
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        
+        @media (max-width: 768px) {
+            .status-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        .status-card {
+            background: #1e293b;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            border: 1px solid #334155;
+        }
+        
+        .status-label {
+            color: #94a3b8;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+        
+        .status-value {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        .online { color: #4ade80; }
+        .offline { color: #f87171; }
+        
+        .preview-section {
+            background: #1e293b;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 25px;
+            border: 1px solid #334155;
+        }
+        
+        .preview-title {
+            color: #60a5fa;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .image-container {
+            background: #0f172a;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            min-height: 400px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #334155;
+        }
+        
+        #previewImage {
+            max-width: 100%;
+            max-height: 360px;
+            border-radius: 8px;
+            display: none;
+        }
+        
+        .placeholder {
+            color: #64748b;
+            font-size: 18px;
+        }
+        
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin: 20px 0;
+            justify-content: center;
+        }
+        
+        .btn {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 180px;
+            justify-content: center;
+        }
+        
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #2563eb;
+            transform: translateY(-2px);
+        }
+        
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+        
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+        
+        .btn:disabled {
+            background: #475569;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+        
+        .images-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .image-card {
+            background: #1e293b;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid #334155;
+            transition: transform 0.3s;
+        }
+        
+        .image-card:hover {
+            transform: translateY(-5px);
+            border-color: #60a5fa;
+        }
+        
+        .image-card img {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+            cursor: pointer;
+        }
+        
+        .image-info {
+            padding: 12px;
+            font-size: 12px;
+            color: #94a3b8;
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #10b981;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 8px;
+            z-index: 1000;
+            animation: slideIn 0.3s;
+            display: none;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        .pulse {
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+    </style>
+</head>
+<body>
+    <div class="notification" id="notification"></div>
+    
+    <div class="container">
+        <header>
+            <h1>🎮 پنل کنترل دوربین</h1>
+            <p>📱 تصاویر از گوشی به صورت خودکار دریافت می‌شوند</p>
+        </header>
+        
+        <div class="connection-info">
+            <h3>📱 راه‌اندازی گوشی:</h3>
+            <div class="qr-box">
+                <div id="qrcode"></div>
+            </div>
+            <div class="link-box" id="cameraLink">
+                در حال بارگذاری...
+            </div>
+            <div class="controls">
+                <button class="btn btn-primary" onclick="copyLink()">
+                    📋 کپی لینک
+                </button>
+                <button class="btn btn-success" onclick="testCamera()">
+                    📸 تست دوربین
+                </button>
+            </div>
+        </div>
+        
+        <div class="status-grid">
+            <div class="status-card">
+                <div class="status-label">وضعیت دوربین</div>
+                <div class="status-value" id="cameraStatus">---</div>
+            </div>
+            <div class="status-card">
+                <div class="status-label">تصاویر دریافتی</div>
+                <div class="status-value" id="imageCount">0</div>
+            </div>
+            <div class="status-card">
+                <div class="status-label">آخرین تصویر</div>
+                <div class="status-value" id="lastImageTime">--:--</div>
+            </div>
+            <div class="status-card">
+                <div class="status-label">بروزرسانی</div>
+                <div class="status-value" id="updateStatus">⏳</div>
+            </div>
+        </div>
+        
+        <div class="preview-section">
+            <div class="preview-title">
+                <span>🖼️ پیش‌نمایش</span>
+                <button class="btn btn-success" onclick="downloadCurrent()" id="downloadBtn" disabled>
+                    ⬇️ دانلود تصویر
+                </button>
+            </div>
+            <div class="image-container">
+                <div class="placeholder" id="imagePlaceholder">
+                    🔄 منتظر دریافت تصویر از گوشی...
+                </div>
+                <img id="previewImage" alt="پیش‌نمایش">
+            </div>
+        </div>
+        
+        <div>
+            <h3>📁 آرشیو تصاویر (آخرین ۲۰ تصویر)</h3>
+            <div class="images-grid" id="imagesGrid">
+                <!-- تصاویر اینجا نمایش داده می‌شوند -->
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+    <script>
+        // متغیرهای اصلی
+        let images = [];
+        let currentImage = null;
+        let lastUpdateTime = 0;
+        let checkInterval = null;
+        
+        // عناصر DOM
+        const cameraStatus = document.getElementById('cameraStatus');
+        const imageCount = document.getElementById('imageCount');
+        const lastImageTime = document.getElementById('lastImageTime');
+        const updateStatus = document.getElementById('updateStatus');
+        const previewImage = document.getElementById('previewImage');
+        const imagePlaceholder = document.getElementById('imagePlaceholder');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const imagesGrid = document.getElementById('imagesGrid');
+        const notification = document.getElementById('notification');
+        const cameraLink = document.getElementById('cameraLink');
+        
+        // بارگذاری اولیه
+        loadImages();
+        updateDisplay();
+        setupQRCode();
+        startChecking();
+        
+        // بارگذاری تصاویر از localStorage
+        function loadImages() {
+            try {
+                const saved = localStorage.getItem('camera_images');
+                if (saved) {
+                    images = JSON.parse(saved);
+                }
+            } catch (e) {
+                images = [];
+            }
+        }
+        
+        // ذخیره تصاویر
+        function saveImages() {
+            localStorage.setItem('camera_images', JSON.stringify(images));
+        }
+        
+        // بررسی تصاویر جدید
+        function checkForNewImage() {
+            try {
+                // شبیه‌سازی دریافت تصویر جدید
+                const now = Date.now();
+                if (now - lastUpdateTime > 3000) { // هر ۳ ثانیه
+                    // در حالت واقعی اینجا از localStorage یا سرور می‌خوانیم
+                    updateStatus.textContent = '🔄';
+                    
+                    // شبیه‌سازی دریافت تصویر (برای تست)
+                    if (Math.random() > 0.7 && images.length < 5) {
+                        simulateNewImage();
+                    }
+                    
+                    lastUpdateTime = now;
+                    updateStatus.textContent = '✅';
+                    
+                    setTimeout(() => {
+                        updateStatus.textContent = '⏳';
+                    }, 1000);
+                }
+                
+                updateDisplay();
+                
+            } catch (e) {
+                console.error('خطا در بررسی:', e);
+            }
+        }
+        
+        // شبیه‌سازی تصویر جدید
+        function simulateNewImage() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 640;
+            canvas.height = 480;
+            const ctx = canvas.getContext('2d');
+            
+            // ایجاد تصویر نمونه
+            const colors = ['#1e40af', '#7c3aed', '#059669', '#dc2626'];
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.fillStyle = color;
+            ctx.fillRect(50, 50, canvas.width - 100, canvas.height - 100);
+            
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 30px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('📸 تصویر تست', canvas.width/2, canvas.height/2 - 20);
+            
+            ctx.font = '20px Arial';
+            ctx.fillText(new Date().toLocaleTimeString('fa-IR'), canvas.width/2, canvas.height/2 + 30);
+            ctx.fillText(`شماره: ${images.length + 1}`, canvas.width/2, canvas.height/2 + 70);
+            
+            const imageData = canvas.toDataURL('image/jpeg', 0.9);
+            
+            addNewImage(imageData);
+        }
+        
+        // افزودن تصویر جدید
+        function addNewImage(imageData) {
+            const newImage = {
+                id: Date.now(),
+                data: imageData,
+                timestamp: new Date().toLocaleString('fa-IR'),
+                time: Date.now()
+            };
+            
+            images.unshift(newImage);
+            if (images.length > 20) {
+                images = images.slice(0, 20);
+            }
+            
+            saveImages();
+            updateDisplay();
+            
+            // نمایش در پیش‌نمایش
+            showImage(newImage);
+            
+            showNotification('📸 تصویر جدید دریافت شد');
+        }
+        
+        // نمایش تصویر
+        function showImage(image) {
+            currentImage = image;
+            previewImage.src = image.data;
+            previewImage.style.display = 'block';
+            imagePlaceholder.style.display = 'none';
+            
+            downloadBtn.disabled = false;
+        }
+        
+        // به‌روزرسانی نمایش
+        function updateDisplay() {
+            imageCount.textContent = images.length;
+            
+            if (images.length > 0) {
+                lastImageTime.textContent = images[0].timestamp;
+                
+                // به‌روزرسانی وضعیت دوربین
+                const lastImageAge = Date.now() - images[0].time;
+                if (lastImageAge < 10000) { // کمتر از ۱۰ ثانیه
+                    cameraStatus.textContent = '✅ فعال';
+                    cameraStatus.className = 'status-value online';
+                } else if (lastImageAge < 30000) { // کمتر از ۳۰ ثانیه
+                    cameraStatus.textContent = '⚠️ غیرفعال';
+                    cameraStatus.className = 'status-value offline';
+                } else {
+                    cameraStatus.textContent = '❌ قطع';
+                    cameraStatus.className = 'status-value offline';
+                }
+            } else {
+                cameraStatus.textContent = '---';
+                cameraStatus.className = 'status-value';
+                lastImageTime.textContent = '--:--';
+            }
+            
+            // به‌روزرسانی گرید تصاویر
+            updateImagesGrid();
+        }
+        
+        // به‌روزرسانی گرید تصاویر
+        function updateImagesGrid() {
+            imagesGrid.innerHTML = '';
+            
+            images.forEach(img => {
+                const card = document.createElement('div');
+                card.className = 'image-card';
+                card.innerHTML = `
+                    <img src="${img.data}" alt="تصویر" onclick="selectImage('${img.id}')">
+                    <div class="image-info">
+                        <div>${img.timestamp}</div>
+                    </div>
+                `;
+                imagesGrid.appendChild(card);
+            });
+        }
+        
+        // انتخاب تصویر
+        function selectImage(imageId) {
+            const image = images.find(img => img.id == imageId);
+            if (image) {
+                showImage(image);
+            }
+        }
+        
+        // دانلود تصویر جاری
+        function downloadCurrent() {
+            if (!currentImage) return;
+            
+            const link = document.createElement('a');
+            link.href = currentImage.data;
+            link.download = `capture-${currentImage.id}.jpg`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            showNotification('✅ تصویر دانلود شد');
+        }
+        
+        // کپی لینک دوربین
+        function copyLink() {
+            const link = window.location.origin + '/camera-stream/camera.html';
+            navigator.clipboard.writeText(link)
+                .then(() => showNotification('✅ لینک کپی شد'))
+                .catch(() => showNotification('❌ خطا در کپی لینک'));
+        }
+        
+        // تست دوربین
+        function testCamera() {
+            simulateNewImage();
+            showNotification('📸 تست دوربین انجام شد');
+        }
+        
+        // تنظیم QR کد
+        function setupQRCode() {
+            const link = window.location.origin + '/camera-stream/camera.html';
+            cameraLink.textContent = link;
+            
+            QRCode.toCanvas(document.getElementById('qrcode'), link, {
+                width: 200,
+                margin: 2,
+                color: {
+                    dark: '#000000',
+                    light: '#FFFFFF'
+                }
+            });
+        }
+        
+        // شروع بررسی دوره‌ای
+        function startChecking() {
+            checkInterval = setInterval(checkForNewImage, 2000);
+        }
+        
+        // نمایش نوتیفیکیشن
+        function showNotification(message) {
+            notification.textContent = message;
+            notification.style.display = 'block';
+            
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, 3000);
+        }
+        
+        // توابع عمومی
+        window.selectImage = selectImage;
+        window.downloadCurrent = downloadCurrent;
+        window.copyLink = copyLink;
+        window.testCamera = testCamera;
+        
+    </script>
+</body>
+</html>
